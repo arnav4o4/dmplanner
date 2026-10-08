@@ -3,7 +3,7 @@ name: Trigger Cloudflare Build
 on:
   push:
     branches:
-      - main  # or master, depending on your default branch name
+      - main  # Make sure this matches your default branch name (e.g. main or master)
 
 jobs:
   trigger-deploy:
@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Send Webhook to Cloudflare Pages
         run: |
-          curl -X POST "${{ https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/c8e7bf4a-4b8d-402e-9987-294f6ad5030d }}"
+          curl -X POST "${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}"
