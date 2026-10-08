@@ -25,8 +25,7 @@
         body {
             font-family: 'JetBrains Mono', monospace, system-ui;
             background-color: var(--bg-color);
-
-            background-image: url('file:///home/arnav/Downloads/bg.jpg');
+            background-image: url('https://i.ibb.co/XxsW1wbq/bg.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -496,7 +495,6 @@
             padding-bottom: 6px;
         }
 
-        /* FIXED SIZING & BADGE FOR DATE CELLS */
         .date-cell {
             width: 100%;
             height: 44px;
@@ -519,20 +517,17 @@
             cursor: default;
         }
 
-        /* Hover: Yellow Square Border */
         .date-cell:not(.empty):hover {
             border: 2px solid #f9e2af !important;
             background: rgba(249, 226, 175, 0.1);
         }
 
-        /* Present Day: Red Bordered */
         .date-cell.today {
             border: 2px solid #ff5555 !important;
             font-weight: bold;
             color: #ff5555;
         }
 
-        /* Numeric Badge in Top-Right Corner */
         .task-badge {
             position: absolute;
             top: 2px;
@@ -546,7 +541,6 @@
             background: rgba(186, 150, 64, 0.15);
         }
 
-        /* ==================== ANIMATED POPUP MODAL ==================== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -633,13 +627,11 @@
 </head>
 <body>
 
-<!-- TOP NOTCH BAR -->
 <div class="top-notch" onclick="toggleTopNotch()">
     <span class="top-notch-date" id="top-notch-date-text">TODAY</span>
     <span class="top-notch-badge" id="top-notch-count">0 tasks</span>
 </div>
 
-<!-- SLIDE DOWN TOP NOTCH PANEL -->
 <div class="top-notch-panel" id="top-notch-panel">
     <div class="top-notch-header">
         <h4 id="top-notch-title">Today's Tasks</h4>
@@ -723,10 +715,8 @@
     </div>
 </div>
 
-<!-- CALENDAR NOTCH TAB -->
 <div class="calendar-notch" onclick="toggleCalendar()">CALENDAR</div>
 
-<!-- CALENDAR DRAWER -->
 <div class="calendar-drawer" id="calendar-drawer">
     <div class="calendar-header">
         <h3>Monthly Planner</h3>
@@ -740,7 +730,6 @@
     <div class="calendar-grid" id="calendar-grid"></div>
 </div>
 
-<!-- TO-DO POPUP MODAL -->
 <div class="modal-overlay" id="todo-modal">
     <div class="modal-card">
         <div class="modal-header">
@@ -1069,7 +1058,6 @@
         requestAnimationFrame(updateDigitalClock);
     }
 
-    /* ==================== CALENDAR & TODO LOGIC ==================== */
     let calendarDate = new Date();
     let selectedDateKey = '';
     let dailyTodos = JSON.parse(localStorage.getItem('planner_daily_todos')) || {};
@@ -1099,9 +1087,7 @@
         todayList.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = `todo-item ${item.completed ? 'done' : ''}`;
-            div.innerHTML = `
-                <span style="flex:1;">${item.text}</span>
-            `;
+            div.innerHTML = `<span style="flex:1;">${item.text}</span>`;
             panelList.appendChild(div);
         });
     }
@@ -1194,6 +1180,7 @@
         const val = input.value.trim();
         if (!val) return;
         activeModalTodos.push({ text: val, completed: false });
+        input.value = andClearInput = '';
         input.value = '';
         renderModalTodoList();
     }
