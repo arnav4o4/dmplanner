@@ -104,10 +104,10 @@
 
         .top-notch-panel {
             position: fixed;
-            top: -300px;
+            top: -350px;
             left: 50%;
             transform: translateX(-50%);
-            width: 380px;
+            width: 420px;
             max-width: 90vw;
             background: var(--panel-bg);
             backdrop-filter: blur(16px);
@@ -252,7 +252,7 @@
 
         .dial-background {
             fill: #0A0A0A;
-            stroke: var(--border-color);
+            stroke: var(--bor-color);
             stroke-width: 2;
         }
 
@@ -479,22 +479,67 @@
             margin-bottom: 8px;
             border-left: 4px solid var(--accent-color);
             font-family: 'JetBrains Mono', monospace;
+            gap: 8px;
         }
 
         .task-info {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            flex: 1;
+            min-width: 0;
         }
 
         .task-name {
             font-weight: 500;
             font-size: 0.9rem;
+            word-break: break-word;
         }
 
         .task-time {
             font-size: 0.75rem;
             color: #a6adc8;
+        }
+
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px 6px;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .edit-btn {
+            color: #f9e2af;
+        }
+
+        .edit-btn:hover {
+            background: rgba(249, 226, 175, 0.15);
+        }
+
+        .tick-btn {
+            color: #a6e3a1;
+        }
+
+        .tick-btn:hover {
+            background: rgba(166, 227, 161, 0.15);
+        }
+
+        .arrow-btn {
+            color: #89b4fa;
+        }
+
+        .arrow-btn:hover {
+            background: rgba(137, 180, 250, 0.15);
         }
 
         .delete-btn {
@@ -510,6 +555,18 @@
         .delete-btn:hover {
             background: rgba(243, 139, 168, 0.1);
             border-radius: 4px;
+        }
+
+        .inline-edit-input {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid var(--accent-color);
+            color: #fff;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* ==================== CALENDAR SIDEBAR & NOTCH ==================== */
@@ -734,7 +791,7 @@
         }
 
         .todo-list {
-            max-height: 180px;
+            max-height: 200px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -749,9 +806,10 @@
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 0.85rem;
+            gap: 6px;
         }
 
-        .todo-item.done span {
+        .todo-item.done span.todo-text {
             text-decoration: line-through;
             color: #6c7086;
         }
@@ -1105,6 +1163,48 @@
             updateUI();
         }
 
+        function toggleEditTask(id, btnElem) {
+            const itemDiv = btnElem.closest('.task-item');
+            const nameSpan = itemDiv.querySelector('.task-name');
+            const isEditing = btnElem.classList.contains('fa-check') || btnElem.innerHTML === '✓';
+
+            if (!isEditing) {
+                // Switch to input mode
+                const currentText = nameSpan.textContent;
+                nameSpan.innerHTML = `<input type="text" class="inline-edit-input" value="${escapeHtml(currentText)}">`;
+                btnElem.innerHTML = '✓';
+                btnElem.classList.remove('edit-btn');
+                btnElem.classList.add('tick-btn');
+                const input = nameSpan.querySelector('input');
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+                
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        saveEditTask(id, input.value, btnElem);
+                    }
+                };
+            } else {
+                // Save mode
+                const input = nameSpan.querySelector('input');
+                saveEditTask(id, input ? input.value : nameSpan.textContent, btnElem);
+            }
+        }
+
+        function saveEditTask(id, newTitle, btnElem) {
+            const cleanedTitle = newTitle.trim() || 'Untitled Task';
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.title = cleanedTitle;
+                saveTasksToStorage();
+            }
+            updateUI();
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
         function updateUI() {
             const slicesGroup = document.getElementById('task-slices');
             const listGroup = document.getElementById('task-list');
@@ -1164,10 +1264,13 @@
                 item.style.borderLeftColor = task.color;
                 item.innerHTML = `
                 <div class="task-info">
-                    <span class="task-name">${task.title}</span>
+                    <span class="task-name">${escapeHtml(task.title)}</span>
                     <span class="task-time">${task.start} - ${task.end}</span>
                 </div>
-                <button class="delete-btn" onclick="deleteTask(${task.id})">&times;</button>
+                <div class="task-actions">
+                    <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTask(${task.id}, this)">✎</button>
+                    <button class="delete-btn" title="Delete Task" onclick="deleteTask(${task.id})">&times;</button>
+                </div>
             `;
                 listGroup.appendChild(item);
             });
@@ -1289,10 +1392,68 @@
                 const div = document.createElement('div');
                 div.className = `todo-item ${item.completed ? 'done' : ''}`;
                 div.innerHTML = `
-                <span style="flex:1;">${item.text}</span>
-            `;
+                    <span class="todo-text" style="flex:1;">${escapeHtml(item.text)}</span>
+                    <div class="task-actions">
+                        <button class="action-btn arrow-btn" title="Add to Dial Task Name" onclick="placeTaskToDial('${escapeHtml(item.text).replace(/'/g, "\\'")}')">⬇</button>
+                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTopNotchTodo(${index}, this)">✎</button>
+                        <button class="delete-btn" title="Delete Task" onclick="deleteTopNotchTodo(${index})">&times;</button>
+                    </div>
+                `;
                 panelList.appendChild(div);
             });
+        }
+
+        function placeTaskToDial(taskText) {
+            document.getElementById('task-title').value = taskText;
+            document.getElementById('task-title').focus();
+            toggleTopNotch(); // Close notch panel after clicking
+        }
+
+        function toggleEditTopNotchTodo(index, btnElem) {
+            const todayKey = getFormattedTodayKey();
+            if (!dailyTodos[todayKey]) return;
+            const itemDiv = btnElem.closest('.todo-item');
+            const textSpan = itemDiv.querySelector('.todo-text');
+            const isEditing = btnElem.innerHTML === '✓';
+
+            if (!isEditing) {
+                const currentText = dailyTodos[todayKey][index].text;
+                textSpan.innerHTML = `<input type="text" class="inline-edit-input" value="${escapeHtml(currentText)}">`;
+                btnElem.innerHTML = '✓';
+                btnElem.classList.remove('edit-btn');
+                btnElem.classList.add('tick-btn');
+                const input = textSpan.querySelector('input');
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        saveEditTopNotchTodo(todayKey, index, input.value);
+                    }
+                };
+            } else {
+                const input = textSpan.querySelector('input');
+                saveEditTopNotchTodo(todayKey, index, input ? input.value : textSpan.textContent);
+            }
+        }
+
+        function saveEditTopNotchTodo(dateKey, index, newText) {
+            const cleaned = newText.trim();
+            if (cleaned && dailyTodos[dateKey] && dailyTodos[dateKey][index]) {
+                dailyTodos[dateKey][index].text = cleaned;
+                localStorage.setItem('planner_daily_todos', JSON.stringify(dailyTodos));
+            }
+            renderCalendar();
+        }
+
+        function deleteTopNotchTodo(index) {
+            const todayKey = getFormattedTodayKey();
+            if (dailyTodos[todayKey]) {
+                dailyTodos[todayKey].splice(index, 1);
+                if (dailyTodos[todayKey].length === 0) delete dailyTodos[todayKey];
+                localStorage.setItem('planner_daily_todos', JSON.stringify(dailyTodos));
+                renderCalendar();
+            }
         }
 
         function toggleTopNotch() {
@@ -1369,7 +1530,7 @@
         function openTodoModal(dateKey, day, monthName, year) {
             selectedDateKey = dateKey;
             document.getElementById('modal-date-title').textContent = `${monthName} ${day}, ${year}`;
-            activeModalTodos = dailyTodos[dateKey] ? [...dailyTodos[dateKey]] : [];
+            activeModalTodos = dailyTodos[dateKey] ? JSON.parse(JSON.stringify(dailyTodos[dateKey])) : [];
             renderModalTodoList();
             document.getElementById('todo-modal').classList.add('active');
         }
@@ -1397,6 +1558,40 @@
             renderModalTodoList();
         }
 
+        function toggleEditModalTodo(index, btnElem) {
+            const itemDiv = btnElem.closest('.todo-item');
+            const textSpan = itemDiv.querySelector('.todo-text');
+            const isEditing = btnElem.innerHTML === '✓';
+
+            if (!isEditing) {
+                const currentText = activeModalTodos[index].text;
+                textSpan.innerHTML = `<input type="text" class="inline-edit-input" value="${escapeHtml(currentText)}">`;
+                btnElem.innerHTML = '✓';
+                btnElem.classList.remove('edit-btn');
+                btnElem.classList.add('tick-btn');
+                const input = textSpan.querySelector('input');
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        saveEditModalTodo(index, input.value);
+                    }
+                };
+            } else {
+                const input = textSpan.querySelector('input');
+                saveEditModalTodo(index, input ? input.value : textSpan.textContent);
+            }
+        }
+
+        function saveEditModalTodo(index, newText) {
+            const cleaned = newText.trim();
+            if (cleaned && activeModalTodos[index]) {
+                activeModalTodos[index].text = cleaned;
+            }
+            renderModalTodoList();
+        }
+
         function renderModalTodoList() {
             const listContainer = document.getElementById('modal-todo-list');
             listContainer.innerHTML = '';
@@ -1405,9 +1600,12 @@
                 const div = document.createElement('div');
                 div.className = `todo-item ${item.completed ? 'done' : ''}`;
                 div.innerHTML = `
-                <span onclick="toggleTodoDone(${index})" style="cursor:pointer; flex:1;">${item.text}</span>
-                <button class="delete-btn" onclick="deleteTodoItem(${index})">&times;</button>
-            `;
+                    <span class="todo-text" onclick="toggleTodoDone(${index})" style="cursor:pointer; flex:1;">${escapeHtml(item.text)}</span>
+                    <div class="task-actions">
+                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditModalTodo(${index}, this)">✎</button>
+                        <button class="delete-btn" title="Delete Task" onclick="deleteTodoItem(${index})">&times;</button>
+                    </div>
+                `;
                 listContainer.appendChild(div);
             });
         }
