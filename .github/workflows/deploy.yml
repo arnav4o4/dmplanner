@@ -1,0 +1,14 @@
+name: Trigger Cloudflare Build
+
+on:
+  push:
+    branches:
+      - main  # or master, depending on your default branch name
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Webhook to Cloudflare Pages
+        run: |
+          curl -X POST "${{ https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/c8e7bf4a-4b8d-402e-9987-294f6ad5030d }}"
