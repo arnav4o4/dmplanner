@@ -2315,6 +2315,29 @@
             });
 
             localStorage.setItem('planner_daily_todos', JSON.stringify(dailyTodos));
+
+            // Synchronize copied task with monthTodos assigned section
+            const [y, m] = targetDateKey.split('-');
+            const ymKey = `${y}-${m}`;
+            if (!monthTodos[ymKey]) {
+                monthTodos[ymKey] = [];
+            }
+
+            const unassignedMatch = monthTodos[ymKey].find(mt => mt.text === taskToCopyText && !mt.assignedDate);
+            if (unassignedMatch) {
+                unassignedMatch.assignedDate = targetDateKey;
+            } else {
+                const alreadyAssigned = monthTodos[ymKey].find(mt => mt.text === taskToCopyText && mt.assignedDate === targetDateKey);
+                if (!alreadyAssigned) {
+                    monthTodos[ymKey].push({
+                        id: Date.now() + Math.random(),
+                        text: taskToCopyText,
+                        assignedDate: targetDateKey
+                    });
+                }
+            }
+            localStorage.setItem('planner_month_todos', JSON.stringify(monthTodos));
+
             renderCalendar();
             closeCopyModal();
 
