@@ -1115,6 +1115,31 @@
         .sync-drawer textarea:focus {
             border-color: var(--accent-color);
         }
+
+        /* ==================== IN-APP TOAST NOTIFICATION ==================== */
+        .app-toast {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background:#ff5555; /* Accent color background */
+            color: #11111b;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .app-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -2478,17 +2503,48 @@
             };
         }
 
-        function exportDataFile() {
+        async function exportDataFile() {
             const data = getPayloadData();
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `dmplanner_backup_${new Date().toISOString().slice(0, 10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const jsonString = JSON.stringify(data, null, 2);
+            const filename = `dmplanner_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        
+            // Check if running inside the Capacitor Android App
+            const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
+        
+            if (isCapacitor) {
+                try {
+                    const { FileSharer } = window.Capacitor.Plugins;
+                    const base64Data = btoa(unescape(encodeURIComponent(jsonString)));
+        
+                    await FileSharer.save({
+                        filename: filename,
+                        contentType: 'application/json',
+                        base64Data: base64Data,
+                    });
+                    
+                    // Show in-app toast for mobile app download success
+                    showInAppToast('Successfully saved to Downloads!');
+                } catch (error) {
+                    console.error('Capacitor export failed:', error);
+                    showInAppToast('Export failed: ' + error);
+                }
+            } else {
+                // Regular web browser flow
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", url);
+                downloadAnchor.setAttribute("download", filename);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                URL.revokeObjectURL(url);
+        
+                // Show in-app toast for browser download success
+                showInAppToast('JSON file downloaded successfully!');
+            }
         }
-
+        
         function copyExportJson() {
             const data = getPayloadData();
             navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
@@ -2621,6 +2677,30 @@
         renderCalendar();
         updateEndTimeFromStart();
         requestAnimationFrame(updateDigitalClock);
+
+
+
+        function showInAppToast(message) {
+            // Remove any existing toast if present
+            let existingToast = document.getElementById('app-toast-box');
+            if (existingToast) existingToast.remove();
+        
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.id = 'app-toast-box';
+            toast.className = 'app-toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+        
+            // Trigger smooth slide-in animation
+            setTimeout(() => toast.classList.add('show'), 10);
+        
+            // Slide out and remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
 
 </body>
