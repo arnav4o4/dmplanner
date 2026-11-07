@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DMPlanner</title>
+    <!-- Preload background image instantly to prevent opening lag -->
+    <link rel="preload" href="https://raw.githubusercontent.com/arnav4o4/dmplanner/refs/heads/main/bg.jpg" as="image">
     <!-- Website icon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/arnav4o4/dmplanner/refs/heads/main/favicon.png">
     <!-- Import JetBrains Mono Font -->
@@ -36,13 +38,11 @@
         body {
                     font-family: 'JetBrains Mono', monospace, system-ui;
                     background-color: var(--bg-color);
-                    /* Add initial opacity/filter or keep it ready for transition */
-                    background-image: none; /* Will be applied via JavaScript once loaded */
+                    background-image: url('https://raw.githubusercontent.com/arnav4o4/dmplanner/refs/heads/main/bg.jpg');
                     background-size: cover;
                     background-position: center;
                     background-repeat: no-repeat;
                     background-attachment: fixed;
-        
                     color: var(--text-color);
                     margin: 0;
                     padding: 0;
@@ -52,14 +52,6 @@
                     min-height: 100vh;
                     box-sizing: border-box;
                     position: relative;
-                    
-                    /* Smooth fade & scale transition when background loads */
-                    transition: background-image 1.2s ease-in-out;
-                }
-        
-                /* Class added dynamically when the image is fully downloaded */
-                body.bg-loaded {
-                    background-image: url('https://raw.githubusercontent.com/arnav4o4/dmplanner/refs/heads/main/bg.jpg');
                     animation: bgZoomIn 1.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
                 }
         
