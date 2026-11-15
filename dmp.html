@@ -1240,6 +1240,29 @@
                             -ms-overflow-style: none;  /* IE and Edge */
                             scrollbar-width: none;  /* Firefox */
                         }
+                /* ================= edit task option ================*/
+                        .edit-button-group {
+                                    display: grid;
+                                    grid-template-columns: 1fr 1fr;
+                                    gap: 8px;
+                                    margin-top: 5px;
+                                }
+                        
+                                button.cancel-btn {
+                                    background: rgba(243, 139, 168, 0.15);
+                                    border: 1px solid #f38ba8;
+                                    color: #f38ba8;
+                                    font-weight: bold;
+                                    cursor: pointer;
+                                    border-radius: 8px;
+                                    padding: 10px;
+                                    font-family: 'JetBrains Mono', monospace;
+                                    transition: background 0.2s;
+                                }
+                        
+                                button.cancel-btn:hover {
+                                    background: rgba(243, 139, 168, 0.25);
+                                }
     </style>
 </head>
 
@@ -1407,7 +1430,10 @@
                 </select>
             </div>
 
-            <button class="add-btn" onclick="addTask()">Add Task to Dial</button>
+            <!-- Action Buttons Container -->
+            <div id="form-action-buttons">
+                <button class="add-btn" id="main-action-btn" onclick="addTask()">Add Task to Dial</button>
+            </div>
 
             <div class="task-list-container">
                 <div id="task-list"></div>
@@ -1688,73 +1714,91 @@
 
         durationSelect.addEventListener('change', updateEndTimeFromStart);
 
-        function addTask() {
-            const title = document.getElementById('task-title').value.trim() || 'Untitled Task';
-            const start = document.getElementById('start-time').value;
-            const end = document.getElementById('end-time').value;
-            const color = document.getElementById('task-color').value;
-
-            if (!start || !end) {
-                alert("Please select both start and end times.");
-                return;
-            }
-
-            let startMins = timeToMinutes(start);
-            let endMins = timeToMinutes(end);
-
-            // If end time is earlier or equal to start time, it wraps into the next day
-            if (endMins <= startMins) {
-                endMins += 1440; // Add 24 hours worth of minutes
-            }
-
-            const task = { id: Date.now(), title, start, end, color };
-            tasks.push(task);
-            saveTasksToStorage();
-            document.getElementById('task-title').value = '';
-            updateUI();
-        }
-
         function deleteTask(id) {
             tasks = tasks.filter(t => t.id !== id);
             saveTasksToStorage();
             updateUI();
         }
 
-        function toggleEditTask(id, btnElem) {
-            const itemDiv = btnElem.closest('.task-item');
-            const nameSpan = itemDiv.querySelector('.task-name');
-            const isEditing = btnElem.classList.contains('fa-check') || btnElem.innerHTML === '✓';
-
-            if (!isEditing) {
-                const currentText = nameSpan.textContent;
-                nameSpan.innerHTML = `<input type="text" class="inline-edit-input" value="${escapeHtml(currentText)}">`;
-                btnElem.innerHTML = '✓';
-                btnElem.classList.remove('edit-btn');
-                btnElem.classList.add('tick-btn');
-                const input = nameSpan.querySelector('input');
-                input.focus();
-                input.setSelectionRange(input.value.length, input.value.length);
-
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') {
-                        saveEditTask(id, input.value, btnElem);
+        let editingTaskId = null; // Tracks if we are currently editing a task
+        
+                function addTask() {
+                    const title = document.getElementById('task-title').value.trim() || 'Untitled Task';
+                    const start = document.getElementById('start-time').value;
+                    const end = document.getElementById('end-time').value;
+                    const color = document.getElementById('task-color').value;
+        
+                    if (!start || !end) {
+                        alert("Please select both start and end times.");
+                        return;
                     }
-                };
-            } else {
-                const input = nameSpan.querySelector('input');
-                saveEditTask(id, input ? input.value : nameSpan.textContent, btnElem);
-            }
-        }
-
-        function saveEditTask(id, newTitle, btnElem) {
-            const cleanedTitle = newTitle.trim() || 'Untitled Task';
-            const task = tasks.find(t => t.id === id);
-            if (task) {
-                task.title = cleanedTitle;
-                saveTasksToStorage();
-            }
-            updateUI();
-        }
+        
+                    let startMins = timeToMinutes(start);
+                    let endMins = timeToMinutes(end);
+        
+                    if (endMins <= startMins) {
+                        endMins += 1440;
+                    }
+        
+                    if (editingTaskId !== null) {
+                        // Update existing task
+                        const task = tasks.find(t => t.id === editingTaskId);
+                        if (task) {
+                            task.title = title;
+                            task.start = start;
+                            task.end = end;
+                            task.color = color;
+                        }
+                        cancelEditMode();
+                    } else {
+                        // Add new task
+                        const task = { id: Date.now(), title, start, end, color };
+                        tasks.push(task);
+                        document.getElementById('task-title').value = '';
+                    }
+        
+                    saveTasksToStorage();
+                    updateUI();
+                }
+        
+                function toggleEditTask(id, btnElem) {
+                    const task = tasks.find(t => t.id === id);
+                    if (!task) return;
+        
+                    editingTaskId = id;
+        
+                    // Populate form fields with task data
+                    document.getElementById('task-title').value = task.title;
+                    document.getElementById('start-time').value = task.start;
+                    document.getElementById('end-time').value = task.end;
+                    document.getElementById('task-color').value = task.color;
+        
+                    // Scroll up smoothly to the control panel form
+                    document.getElementById('task-title').focus();
+                    document.getElementById('task-title').scrollIntoView({ behavior: 'smooth' });
+        
+                    // Swap button to Confirm / Cancel mode
+                    const buttonContainer = document.getElementById('form-action-buttons');
+                    buttonContainer.innerHTML = `
+                        <div class="edit-button-group">
+                            <button class="add-btn" style="margin-top:0;" onclick="addTask()">Confirm</button>
+                            <button class="cancel-btn" onclick="cancelEditMode()">Cancel</button>
+                        </div>
+                    `;
+                }
+        
+                function cancelEditMode() {
+                    editingTaskId = null;
+                    document.getElementById('task-title').value = '';
+                    document.getElementById('start-time').value = getCurrentTimeString();
+                    updateEndTimeFromStart();
+        
+                    // Revert button back to default "Add Task to Dial"
+                    const buttonContainer = document.getElementById('form-action-buttons');
+                    buttonContainer.innerHTML = `
+                        <button class="add-btn" id="main-action-btn" onclick="addTask()">Add Task to Dial</button>
+                    `;
+                }
 
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -1834,7 +1878,7 @@
                                 <span class="task-time">${task.start} - ${task.end}</span>
                             </div>
                             <div class="task-actions">
-                                <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTask(${task.id}, this)">🖍</button>
+                                <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTask(${task.id}, this)">✒️</button>
                                 <button class="delete-btn" title="Delete Task" onclick="deleteTask(${task.id})">&times;</button>
                             </div>
                         `;
@@ -1969,7 +2013,7 @@
                     <div class="task-actions">
                         <button class="action-btn arrow-btn" title="Add to Dial Task Name" onclick="placeTaskToDial('${escapeHtml(item.text).replace(/'/g, "\\'")}')">⬇</button>
                         <button class="action-btn copy-btn" title="Copy to Date" onclick="openCopyModal('${escapeHtml(item.text).replace(/'/g, "\\'")}')">⎙</button>
-                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTopNotchTodo(${index}, this)">🖍</button>
+                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditTopNotchTodo(${index}, this)">✒️</button>
                         <button class="delete-btn" title="Delete Task" onclick="deleteTopNotchTodo(${index})">&times;</button>
                     </div>
                 `;
@@ -2435,7 +2479,7 @@
                     <span class="todo-text" onclick="toggleTodoDone(${index})" style="cursor:pointer; flex:1;">${escapeHtml(item.text)}</span>
                     <div class="task-actions">
                         <button class="action-btn copy-btn" title="Copy to Date" onclick="openCopyModal('${escapeHtml(item.text).replace(/'/g, "\\'")}')">⎙</button>
-                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditModalTodo(${index}, this)">🖍</button>
+                        <button class="action-btn edit-btn" title="Edit Task" onclick="toggleEditModalTodo(${index}, this)">✒️</button>
                         <button class="delete-btn" title="Delete Task" onclick="deleteTodoItem(${index})">&times;</button>
                     </div>
                 `;
